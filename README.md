@@ -57,7 +57,7 @@ run.py
 
 ### 1. Clone o projeto
 ```bash
-git clone https://github.com/seu-usuario/ibm-iam-dashboard.git
+git clone https://github.com/oliverocr/iam_identity_services_dashboard.git
 cd ibm-iam-dashboard
 
 Crie um ambiente virtual
