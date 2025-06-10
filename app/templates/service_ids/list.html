@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2><i class="fas fa-id-badge"></i> Service IDs</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">
+      <i class="fas fa-plus"></i> Novo
+    </button>
+  </div>
+
+  <!-- 🔍 Filtros -->
+  <form class="row g-2 mb-3" method="get">
+    <div class="col-md-4">
+      <input type="text" name="search" class="form-control" placeholder="🔍 Nome" value="{{ search }}">
+    </div>
+    <div class="col-md-2">
+      <select name="state" class="form-select">
+        <option value="">Estado</option>
+        <option value="locked" {% if request.args.get('state') == 'locked' %}selected{% endif %}>Bloqueado</option>
+        <option value="active" {% if request.args.get('state') == 'active' %}selected{% endif %}>Desbloqueado</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <input type="date" name="created" class="form-control" value="{{ request.args.get('created', '') }}">
+    </div>
+    <div class="col-md-2">
+      <input type="date" name="modified" class="form-control" value="{{ request.args.get('modified', '') }}">
+    </div>
+    <div class="col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-secondary w-100"><i class="fas fa-search"></i></button>
+      <a href="{{ url_for('dashboard.service_ids') }}" class="btn btn-outline-secondary"><i class="fas fa-times"></i></a>
+    </div>
+  </form>
+
+  <!-- 🔁 Exportação -->
+  <div class="d-flex justify-content-end mb-2">
+    <a href="{{ url_for('dashboard.export_csv') }}" class="btn btn-success">
+      <i class="fas fa-file-csv"></i> Exportar CSV
+    </a>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- 📋 Tabela -->
+  <div class="table-responsive">
+    <table class="table table-hover table-bordered align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th>Nome</th>
+          <th>Descrição</th>
+          <th>Estado</th>
+          <th>Criado em</th>
+          <th>Última Modificação</th>
+          <th class="text-center">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sid in service_ids %}
+        <tr>
+          <td>{{ sid.name }}</td>
+          <td>{{ sid.description or '—' }}</td>
+          <td>
+            {% if sid.state == 'locked' %}
+              <span class="badge bg-danger">Bloqueado</span>
+            {% elif sid.state == 'active' %}
+              <span class="badge bg-success">Desbloqueado</span>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>{{ sid.created_at or '—' }}</td>
+          <td>{{ sid.modified_at or '—' }}</td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editModal-{{ sid.id }}">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal-{{ sid.id }}">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </td>
+        </tr>
+
+        <!-- ✏️ Modal Editar -->
+        <div class="modal fade" id="editModal-{{ sid.id }}" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog">
+            <form method="POST" action="{{ url_for('dashboard.edit_service_id', sid_id=sid.id) }}">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">Editar Service ID</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <div class="mb-3">
+                    <label for="name-{{ sid.id }}" class="form-label">Nome</label>
+                    <input type="text" class="form-control" id="name-{{ sid.id }}" value="{{ sid.name }}" readonly>
+                  </div>
+                  <div class="mb-3">
+                    <label for="description-{{ sid.id }}" class="form-label">Descrição</label>
+                    <textarea name="description" class="form-control" id="description-{{ sid.id }}">{{ sid.description }}</textarea>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="locked" id="locked-{{ sid.id }}" {% if sid.state == 'locked' %}checked{% endif %}>
+                    <label class="form-check-label" for="locked-{{ sid.id }}">Bloqueado</label>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="submit" class="btn btn-success">Salvar</button>
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- 🗑️ Modal Excluir -->
+        <div class="modal fade" id="deleteModal-{{ sid.id }}" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog">
+            <form method="POST" action="{{ url_for('dashboard.delete_service_id', sid_id=sid.id) }}">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">Confirmar Exclusão</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  Tem certeza que deseja excluir <strong>{{ sid.name }}</strong>?
+                </div>
+                <div class="modal-footer">
+                  <button type="submit" class="btn btn-danger">Sim, Excluir</button>
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 🔽 Paginação -->
+  <div class="d-flex justify-content-between align-items-center mt-3">
+    <div>
+      <form method="get" class="d-flex align-items-center gap-2">
+        <input type="hidden" name="search" value="{{ search }}">
+        <input type="hidden" name="state" value="{{ request.args.get('state', '') }}">
+        <label for="limit" class="form-label m-0 me-2">Itens por página:</label>
+        <select name="limit" onchange="this.form.submit()" class="form-select form-select-sm" style="width: auto;">
+          <option value="25" {% if limit == 25 %}selected{% endif %}>25</option>
+          <option value="50" {% if limit == 50 %}selected{% endif %}>50</option>
+          <option value="100" {% if limit == 100 %}selected{% endif %}>100</option>
+        </select>
+      </form>
+    </div>
+    <nav>
+      <ul class="pagination mb-0">
+        {% if offset - limit >= 0 %}
+          <li class="page-item">
+            <a class="page-link" href="?offset=0&limit={{ limit }}&search={{ search }}&state={{ request.args.get('state', '') }}">⏮️</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?offset={{ offset - limit }}&limit={{ limit }}&search={{ search }}&state={{ request.args.get('state', '') }}">Anterior</a>
+          </li>
+        {% endif %}
+        {% if offset + limit < total %}
+          <li class="page-item">
+            <a class="page-link" href="?offset={{ offset + limit }}&limit={{ limit }}&search={{ search }}&state={{ request.args.get('state', '') }}">Próximo</a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+</div>
+
+<!-- ➕ Modal Criar -->
+<div class="modal fade" id="createModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="POST" action="{{ url_for('dashboard.create_service_id') }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Criar Novo Service ID</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="name" class="form-label">Nome</label>
+            <input type="text" name="name" id="name" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label for="description" class="form-label">Descrição</label>
+            <textarea name="description" id="description" class="form-control"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Criar</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

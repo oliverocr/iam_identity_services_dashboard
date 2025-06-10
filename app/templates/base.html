@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-br" data-bs-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IBM Cloud IAM Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      padding-top: 70px;
+      padding-bottom: 70px;
+    }
+    footer {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      padding: 0.75rem 1rem;
+      text-align: center;
+      background-color: var(--bs-body-bg);
+      border-top: 1px solid var(--bs-border-color);
+    }
+    .navbar-custom {
+      background-color: var(--bs-body-bg);
+      border-bottom: 1px solid var(--bs-border-color);
+    }
+    .navbar-brand {
+      font-weight: bold;
+      color: var(--bs-emphasis-color);
+    }
+    .theme-toggle-btn {
+      border: 1px solid var(--bs-border-color);
+    }
+    .logout-btn {
+      margin-left: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-light fixed-top navbar-custom px-3">
+    <a class="navbar-brand" href="{{ url_for('dashboard.home') }}">
+      <i class="fas fa-shield-alt me-1"></i> IBM IAM Dashboard
+    </a>
+    <div class="ms-auto d-flex align-items-center">
+      <button class="btn btn-sm btn-outline-secondary theme-toggle-btn" id="themeToggle">🌙 Modo Escuro</button>
+      <a href="{{ url_for('auth.logout') }}" class="btn btn-sm btn-outline-danger logout-btn">
+        <i class="fas fa-sign-out-alt"></i> Sair
+      </a>
+    </div>
+  </nav>
+
+  <main class="container mt-4">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    <small>🔐 IBM Cloud IAM Dashboard • Desenvolvido com ❤️ por Jake</small>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const themeToggleBtn = document.getElementById('themeToggle');
+    const html = document.documentElement;
+
+    function applyTheme(theme) {
+      html.setAttribute('data-bs-theme', theme);
+      localStorage.setItem('theme', theme);
+      themeToggleBtn.innerText = theme === 'dark' ? '☀️ Modo Claro' : '🌙 Modo Escuro';
+    }
+
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    applyTheme(savedTheme);
+
+    themeToggleBtn.addEventListener('click', () => {
+      const newTheme = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(newTheme);
+    });
+  </script>
+</body>
+</html>

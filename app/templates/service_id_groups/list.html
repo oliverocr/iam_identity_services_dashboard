@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>👥 Grupos de Service ID</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">➕ Novo Grupo</button>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <table class="table table-bordered table-hover align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>Nome</th>
+        <th>Descrição</th>
+        <th>Service IDs</th>
+        <th>Criado em</th>
+        <th class="text-center">Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for group in groups %}
+      <tr>
+        <td>{{ group.name }}</td>
+        <td>{{ group.description or '—' }}</td>
+        <td>
+          <ul class="mb-0">
+            {% for sid in group.serviceids %}
+              <li>{{ sid }}</li>
+            {% endfor %}
+          </ul>
+        </td>
+        <td>{{ group.created_at or '—' }}</td>
+        <td class="text-center">
+          <form method="POST" action="{{ url_for('dashboard.delete_service_id_group', group_id=group.id) }}" onsubmit="return confirm('Tem certeza que deseja excluir este grupo?');">
+            <button type="submit" class="btn btn-sm btn-danger">🗑️ Excluir</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal Criação -->
+<div class="modal fade" id="createModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="POST" action="{{ url_for('dashboard.create_service_id_group') }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">➕ Criar Novo Grupo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="name" class="form-label">Nome</label>
+            <input type="text" name="name" id="name" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label for="description" class="form-label">Descrição</label>
+            <textarea name="description" id="description" class="form-control"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Criar</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

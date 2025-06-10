@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 75vh;">
+  <div class="card shadow-lg p-4 w-100" style="max-width: 450px;">
+    <div class="text-center mb-3">
+      <h3 class="fw-bold mb-0">🔐 IBM Cloud Login</h3>
+      <small class="text-muted">Dashboard IAM Identity</small>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" class="mt-3" autocomplete="off">
+      <div class="mb-3">
+        <label for="account_id" class="form-label fw-semibold">🆔 Account ID</label>
+        <input type="text" class="form-control" name="account_id" id="account_id" required placeholder="ex: 1234-xxxx-xxxx-xxxx">
+      </div>
+
+      <div class="mb-3">
+        <label for="api_key" class="form-label fw-semibold">🔑 API Key</label>
+        <div class="input-group">
+          <input type="password" class="form-control" name="api_key" id="api_key" required placeholder="sua chave secreta">
+          <button type="button" class="btn btn-outline-secondary" id="togglePassword">
+            <i class="fas fa-eye-slash" id="eyeIcon"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="rememberAccount">
+        <label class="form-check-label" for="rememberAccount">
+          Lembrar Account ID
+        </label>
+      </div>
+
+      <div class="d-grid">
+        <button type="submit" class="btn btn-primary fw-bold">🚀 Entrar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Mostrar/esconder senha
+  const toggleBtn = document.getElementById('togglePassword');
+  const passwordField = document.getElementById('api_key');
+  const eyeIcon = document.getElementById('eyeIcon');
+
+  toggleBtn.addEventListener('click', () => {
+    const isHidden = passwordField.type === 'password';
+    passwordField.type = isHidden ? 'text' : 'password';
+    eyeIcon.classList.toggle('fa-eye');
+    eyeIcon.classList.toggle('fa-eye-slash');
+  });
+
+  // Lembrar Account ID
+  const accountInput = document.getElementById('account_id');
+  const rememberCheckbox = document.getElementById('rememberAccount');
+
+  // Carregar Account ID se salvo
+  document.addEventListener('DOMContentLoaded', () => {
+    const savedAccountId = localStorage.getItem('account_id');
+    if (savedAccountId) {
+      accountInput.value = savedAccountId;
+      rememberCheckbox.checked = true;
+    }
+  });
+
+  // Salvar/Remover Account ID no localStorage
+  rememberCheckbox.addEventListener('change', () => {
+    if (rememberCheckbox.checked) {
+      localStorage.setItem('account_id', accountInput.value);
+    } else {
+      localStorage.removeItem('account_id');
+    }
+  });
+
+  // Atualiza localStorage ao digitar
+  accountInput.addEventListener('input', () => {
+    if (rememberCheckbox.checked) {
+      localStorage.setItem('account_id', accountInput.value);
+    }
+  });
+</script>
+{% endblock %}

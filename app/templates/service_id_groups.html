@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>👥 Grupos de Service ID</h2>
+    <div class="d-flex gap-2">
+      <a href="?{% for key, value in request.args.items() %}{% if key != 'format' %}{{ key }}={{ value }}&{% endif %}{% endfor %}format=csv" class="btn btn-success">
+        <i class="fas fa-file-csv"></i> Exportar CSV
+      </a>
+      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createGroupModal">
+        ➕ Novo Grupo
+      </button>
+    </div>
+  </div>
+
+  <!-- 🔎 Filtros -->
+  <form method="get" class="row g-2 mb-3">
+    <div class="col-md-5">
+      <input type="text" name="search" class="form-control" placeholder="🔍 Buscar por nome ou descrição" value="{{ request.args.get('search', '') }}">
+    </div>
+    <div class="col-md-3">
+      <input type="date" name="created" class="form-control" value="{{ request.args.get('created', '') }}">
+    </div>
+    <div class="col-md-2">
+      <select name="limit" class="form-select">
+        {% for option in [10, 25, 50, 100] %}
+          <option value="{{ option }}" {% if limit == option %}selected{% endif %}>{{ option }} por página</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-outline-secondary w-100">
+        <i class="fas fa-filter"></i> Filtrar
+      </button>
+    </div>
+  </form>
+
+  <!-- 🔔 Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- 📋 Tabela -->
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th>
+            {% set args = request.args.to_dict() %}
+            {% set new_order = 'asc' if order_dir == 'desc' else 'desc' %}
+            <a href="?{% for key, value in request.args.items() %}{% if key != 'order_by' and key != 'order_dir' %}{{ key }}={{ value }}&{% endif %}{% endfor %}order_by=name&order_dir={{ new_order }}">
+              Nome
+              {% if order_by == 'name' %}
+                <i class="fas fa-sort-{{ 'down' if order_dir == 'desc' else 'up' }}"></i>
+              {% endif %}
+            </a>
+          </th>
+          <th>Descrição</th>
+          <th>Service IDs</th>
+          <th>Data Criação</th>
+          <th class="text-center">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for group in groups %}
+        <tr>
+          <td>{{ group.name }}</td>
+          <td>{{ group.description or '—' }}</td>
+          <td>
+            <ul class="mb-0">
+              {% for sid in group.serviceids %}
+                <li>{{ sid }}</li>
+              {% endfor %}
+            </ul>
+          </td>
+          <td>{{ group.created_at or '—' }}</td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editModal-{{ group.id }}">
+              ✏️
+            </button>
+            <form method="POST" action="{{ url_for('dashboard.delete_service_id_group', group_id=group.id) }}" class="d-inline" onsubmit="return confirm('Confirmar exclusão do grupo?');">
+              <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+            </form>
+          </td>
+        </tr>
+
+        <!-- Modal Editar -->
+        <div class="modal fade" id="editModal-{{ group.id }}" tabindex="-1">
+          <div class="modal-dialog">
+            <form method="POST" action="{{ url_for('dashboard.edit_service_id_group', group_id=group.id) }}">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">Editar Grupo</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <div class="mb-3">
+                    <label class="form-label">Nome</label>
+                    <input type="text" name="name" class="form-control" value="{{ group.name }}" required>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Descrição</label>
+                    <textarea name="description" class="form-control">{{ group.description }}</textarea>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Service IDs</label>
+                    <select name="serviceids" class="form-select" multiple size="6">
+                      {% for sid in all_service_ids %}
+                        <option value="{{ sid.id }}" {% if sid.id in group.serviceids %}selected{% endif %}>
+                          {{ sid.name }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="submit" class="btn btn-success">Salvar</button>
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 🔄 Paginação -->
+  <div class="d-flex justify-content-between align-items-center mt-3">
+    <div>
+      <span>Total: <strong>{{ total }}</strong> grupos</span>
+    </div>
+    <nav>
+      <ul class="pagination mb-0">
+        {% if offset - limit >= 0 %}
+          <li class="page-item"><a class="page-link" href="?offset=0&limit={{ limit }}">⏮️</a></li>
+          <li class="page-item"><a class="page-link" href="?offset={{ offset - limit }}&limit={{ limit }}">Anterior</a></li>
+        {% endif %}
+        {% if offset + limit < total %}
+          <li class="page-item"><a class="page-link" href="?offset={{ offset + limit }}&limit={{ limit }}">Próximo</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+</div>
+
+<!-- Modal Criar -->
+<div class="modal fade" id="createGroupModal" tabindex="-1" aria-labelledby="createGroupModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <form method="POST" action="{{ url_for('dashboard.create_service_id_group') }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="createGroupModalLabel">➕ Criar Service ID Group</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+
+          <!-- Nome do Grupo -->
+          <div class="mb-3">
+            <label for="groupName" class="form-label fw-bold">Nome do Grupo <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="groupName" name="name" required placeholder="Ex: grupo-devops">
+          </div>
+
+          <!-- Descrição -->
+          <div class="mb-3">
+            <label for="groupDescription" class="form-label fw-bold">Descrição</label>
+            <textarea class="form-control" id="groupDescription" name="description" rows="3" placeholder="Descreva a finalidade do grupo..."></textarea>
+          </div>
+
+          <!-- Seleção de Service IDs -->
+          <div class="mb-3">
+            <label for="serviceIds" class="form-label fw-bold">Service IDs vinculados</label>
+            <select class="form-select" id="serviceIds" name="serviceids" multiple size="6">
+              {% for sid in all_service_ids %}
+                <option value="{{ sid['id'] }}">{{ sid['name'] }} ({{ sid['id'][:8] }}...)</option>
+              {% endfor %}
+            </select>
+            <small class="text-muted">Segure <kbd>Ctrl</kbd> (Windows/Linux) ou <kbd>Cmd</kbd> (Mac) para selecionar vários.</small>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">💾 Criar Grupo</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
